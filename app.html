@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockBridge - Modern Inventory Management</title>
+    <!-- Inter Font & Feather Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --success-light: #ecfdf5;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --sidebar-width: 240px;
+            --header-height: 64px;
+            --radius: 10px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        /* --- LAYOUT STRUCTURE --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        #main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #top-bar {
+            height: var(--header-height);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+        }
+
+        #content-area {
+            flex: 1;
+            padding: 28px;
+            overflow-y: auto;
+        }
+
+        /* --- SIDEBAR --- */
+        .brand {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-item i {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* --- TOP BAR --- */
+        .top-left-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .top-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            padding: 6px;
+            border-radius: 50%;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        .badge-dot {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid var(--surface);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .page {
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .page.active {
+            display: flex;
+        }
+
+        .page-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        .grid-3-1 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 18px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-card {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: var(--success-light); color: var(--success); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+
+        /* TABLES */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: var(--bg-main);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        /* CONTROLS & BUTTONS */
+        .controls-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-search, select, .btn {
+            height: 38px;
+            padding: 0 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            outline: none;
+            background: var(--surface);
+        }
+
+        .input-search { flex: 1; }
+        .input-search:focus, select:focus { border-color: var(--primary); }
+
+        .btn {
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.15s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover { background: var(--bg-main); }
+
+        .btn-danger {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: none;
+        }
+
+        .btn-sm { height: 30px; padding: 0 10px; font-size: 12px; }
+
+        /* --- FLOATING AI CHATBOT --- */
+        #ai-widget-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+        }
+
+        #ai-chat-window {
+            position: fixed;
+            bottom: 88px;
+            right: 24px;
+            width: 360px;
+            height: 480px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 14px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--bg-main);
+        }
+
+        .chat-msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .chat-msg.ai {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            align-self: flex-start;
+        }
+
+        .chat-msg.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .chat-input-area {
+            padding: 12px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 10px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--surface);
+            border-radius: 12px;
+            width: 480px;
+            max-width: 90%;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .modal-footer {
+            padding: 12px 20px;
+            background: var(--bg-main);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+        <div class="brand">
+            <i data-feather="box"></i>
+            <span>StockBridge</span>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item active" onclick="switchTab('dashboard', this)">
+                <i data-feather="grid"></i> Dashboard
+            </li>
+            <li class="nav-item" onclick="switchTab('inventory', this)">
+                <i data-feather="database"></i> Inventory
+            </li>
+            <li class="nav-item" onclick="switchTab('expiry', this)">
+                <i data-feather="clock"></i> Expiry
+            </li>
+            <li class="nav-item" onclick="switchTab('transfers', this)">
+                <i data-feather="repeat"></i> Transfers
+            </li>
+            <li class="nav-item" onclick="switchTab('branches', this)">
+                <i data-feather="map-pin"></i> Branches
+            </li>
+            <li class="nav-item" onclick="switchTab('suppliers', this)">
+                <i data-feather="truck"></i> Suppliers
+            </li>
+            <li class="nav-item" onclick="switchTab('reports', this)">
+                <i data-feather="bar-chart-2"></i> Reports
+            </li>
+        </ul>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div id="main-wrapper">
+        
+        <!-- TOP BAR -->
+        <header id="top-bar">
+            <div class="top-left-title" id="top-title">Overview</div>
+            <div class="top-right">
+                <button class="icon-btn">
+                    <i data-feather="bell"></i>
+                    <span class="badge-dot"></span>
+                </button>
+                <div class="user-profile">
+                    <div class="avatar">AD</div>
+                    <span style="font-weight: 500;">Admin User</span>
+                    <i data-feather="chevron-down" style="width: 14px;"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT CONTAINER -->
+        <main id="content-area">
+
+            <!-- 1. DASHBOARD PAGE -->
+            <section id="dashboard" class="page active">
+                <div class="page-header">
+                    <h2>Good morning, Admin</h2>
+                    <p>Here is your enterprise inventory overview for today.</p>
+                </div>
+
+                <div class="grid-4">
+                    <div class="card stat-card">
+                        <span class="label">Total Stock</span>
+                        <span class="value">12,480</span>
+                        <span class="badge badge-success">↑ 2.4% vs last week</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="label">Low Stock Items</span>
+                        <span class="value" style="color: var(--warning);">324</span>
+                        <span class="badge badge-warning">Requires Attention</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="label">Expiring Soon (7d)</span>
+                        <span class="value" style="color: var(--danger);">86</span>
+                        <span class="badge badge-danger">Critical Risk</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="label">Pending Transfers</span>
+                        <span class="value">14</span>
+                        <span class="badge badge-success">4 AI Suggested</span>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px; font-size: 15px;">Inventory by Branch</h3>
+                        <canvas id="chart-branch" height="180"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3 style="margin-bottom: 16px; font-size: 15px;">Stock Health Status</h3>
+                        <canvas id="chart-health" height="180"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-3-1">
+                    <div class="card">
+                        <h3 style="margin-bottom: 14px; font-size: 15px;">Recommended Transfers</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Source</th>
+                                        <th>Destination</th>
+                                        <th>Product</th>
+                                        <th>Qty</th>
+                                        <th>Saving</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Branch A</td>
+                                        <td>Branch B</td>
+                                        <td>Product X</td>
+                                        <td>60</td>
+                                        <td style="color: var(--success); font-weight: 600;">₹450</td>
+                                        <td><button class="btn btn-secondary btn-sm" onclick="switchTab('transfers')">View</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Branch C</td>
+                                        <td>Branch A</td>
+                                        <td>Product Y</td>
+                                        <td>30</td>
+                                        <td style="color: var(--success); font-weight: 600;">₹280</td>
+                                        <td><button class="btn btn-secondary btn-sm" onclick="switchTab('transfers')">View</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="display: flex; flex-direction: column; gap: 12px;">
+                        <h3 style="font-size: 15px;">Recent Alerts</h3>
+                        <div style="font-size: 12px; padding: 10px; background: var(--danger-light); border-radius: 6px; color: var(--danger);">
+                            ⚠ 24 units of <strong>Product X</strong> expire in 3 days.
+                        </div>
+                        <div style="font-size: 12px; padding: 10px; background: var(--warning-light); border-radius: 6px; color: var(--warning);">
+                            ⚠ <strong>Branch B</strong> has critical low stock of Product Y.
+                        </div>
+                        <div style="font-size: 12px; padding: 10px; background: var(--primary-light); border-radius: 6px; color: var(--primary);">
+                            ↗ New transfer recommendation available.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. INVENTORY PAGE -->
+            <section id="inventory" class="page">
+                <div class="page-header">
+                    <h2>Inventory Management</h2>
+                    <p>Live database tracking of stock levels across all branches.</p>
+                </div>
+
+                <div class="controls-row">
+                    <input type="text" class="input-search" placeholder="Search product name or SKU...">
+                    <select><option>All Branches</option><option>Branch A</option><option>Branch B</option></select>
+                    <select><option>All Categories</option><option>Electronics</option><option>Perishables</option></select>
+                    <select><option>Stock Status: All</option><option>Healthy</option><option>Low Stock</option></select>
+                </div>
+
+                <div class="card" style="padding:0;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Branch</th>
+                                    <th>Stock</th>
+                                    <th>Demand</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Product X</strong> (P001)</td>
+                                    <td>Branch A</td>
+                                    <td>100 units</td>
+                                    <td>10 / day</td>
+                                    <td><span class="badge badge-success">Healthy</span></td>
+                                    <td><button class="btn btn-secondary btn-sm" onclick="openModal('modal-product')">Details</button></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Product Y</strong> (P002)</td>
+                                    <td>Branch B</td>
+                                    <td>5 units</td>
+                                    <td>30 / day</td>
+                                    <td><span class="badge badge-danger">Low Stock ⚠</span></td>
+                                    <td><button class="btn btn-secondary btn-sm" onclick="openModal('modal-product')">Details</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. EXPIRY MANAGEMENT PAGE -->
+            <section id="expiry" class="page">
+                <div class="page-header">
+                    <h2>Expiry Risk Management</h2>
+                    <p>Identify, reroute, or discount stock approaching expiration dates.</p>
+                </div>
+
+                <div class="controls-row">
+                    <button class="btn btn-secondary btn-sm">Next 7 Days</button>
+                    <button class="btn btn-secondary btn-sm">Next 30 Days</button>
+                    <button class="btn btn-secondary btn-sm">All Batches</button>
+                </div>
+
+                <div class="card" style="padding: 0;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Branch</th>
+                                    <th>Quantity</th>
+                                    <th>Expiry Date</th>
+                                    <th>Risk Level</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Product A</strong> (Batch #B102)</td>
+                                    <td>Branch A</td>
+                                    <td>70 units</td>
+                                    <td>28 Sep (3 days)</td>
+                                    <td><span class="badge badge-danger">🔴 Critical</span></td>
+                                    <td><button class="btn btn-primary btn-sm" onclick="openModal('modal-batch')">Inspect Batch</button></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Product B</strong> (Batch #B881)</td>
+                                    <td>Branch C</td>
+                                    <td>25 units</td>
+                                    <td>02 Oct (7 days)</td>
+                                    <td><span class="badge badge-warning">🟠 Warning</span></td>
+                                    <td><button class="btn btn-primary btn-sm" onclick="openModal('modal-batch')">Inspect Batch</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. TRANSFERS PAGE -->
+            <section id="transfers" class="page">
+                <div class="page-header">
+                    <h2>Stock Transfers & AI Recommendations</h2>
+                    <p>Review explainable optimization opportunities generated by StockBridge AI.</p>
+                </div>
+
+                <div class="grid-2">
+                    <!-- TRANSFER RECOMMENDATION CARD -->
+                    <div class="card" id="transfer-card-1" style="display: flex; flex-direction: column; gap: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 700; color: var(--primary);">Branch A → Branch B</span>
+                            <span class="badge badge-success">Saving: ₹450</span>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 600;">Product: Product X</div>
+                        <div style="display: flex; gap: 16px; font-size: 13px; color: var(--text-muted);">
+                            <span>Qty: <strong>60 units</strong></span>
+                            <span>Expiry: <strong>5 days</strong></span>
+                        </div>
+
+                        <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 4px;">
+                            <div>Source Surplus: <strong>+40</strong></div>
+                            <div>Destination Shortage: <strong>-25</strong></div>
+                            <div>Transfer Cost: <strong>₹400</strong> | New Purchase Cost: <strong>₹850</strong></div>
+                        </div>
+
+                        <!-- EXPLAINABLE AI DROPDOWN -->
+                        <div id="explanation-box" style="display: none; background: var(--primary-light); border: 1px solid #bfdbfe; padding: 12px; border-radius: 6px; font-size: 12px;">
+                            <strong>WHY THIS TRANSFER?</strong>
+                            <ul style="margin-left: 16px; margin-top: 6px; display:flex; flex-direction:column; gap:3px;">
+                                <li>✓ Branch A currently holds excess inventory.</li>
+                                <li>✓ Branch B will run out within 48 hours.</li>
+                                <li>✓ Batch will expire soon; moving prevents total loss.</li>
+                                <li>✓ Net cost savings of ₹450 over placing a new purchase order.</li>
+                            </ul>
+                        </div>
+
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <button class="btn btn-secondary btn-sm" onclick="toggleExplanation()">View Explanation</button>
+                            <button class="btn btn-primary btn-sm" onclick="openModal('modal-confirm-transfer')">Approve</button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectTransfer('transfer-card-1')">Reject</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. BRANCHES PAGE -->
+            <section id="branches" class="page">
+                <div class="page-header">
+                    <h2>Branch Network</h2>
+                    <p>Overview of physical fulfillment nodes and regional stock distribution.</p>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="font-size: 16px;">Branch A (Main Hub)</h3>
+                            <div style="color: var(--text-muted); margin-top: 6px;">1,240 units | 12 Products | <span style="color: var(--danger);">3 Alerts</span></div>
+                        </div>
+                        <button class="btn btn-secondary">View Branch</button>
+                    </div>
+                    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="font-size: 16px;">Branch B (North Outlet)</h3>
+                            <div style="color: var(--text-muted); margin-top: 6px;">850 units | 10 Products | <span style="color: var(--warning);">7 Alerts</span></div>
+                        </div>
+                        <button class="btn btn-secondary">View Branch</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. SUPPLIERS PAGE -->
+            <section id="suppliers" class="page">
+                <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h2>Suppliers Directory</h2>
+                        <p>Manage external vendors and order procurement data.</p>
+                    </div>
+                    <button class="btn btn-primary">+ Add Supplier</button>
+                </div>
+
+                <div class="card" style="padding:0;">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>Products Provided</th>
+                                    <th>Contact Info</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Apex Logistics Ltd</strong></td>
+                                    <td>12 Categories</td>
+                                    <td>contact@apex.com</td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                    <td><button class="btn btn-secondary btn-sm">Edit</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. REPORTS PAGE -->
+            <section id="reports" class="page">
+                <div class="page-header">
+                    <h2>Reports & Analytics</h2>
+                    <p>Financial impact statement and inventory movement metrics.</p>
+                </div>
+
+                <div class="grid-4">
+                    <div class="card stat-card">
+                        <span class="label">Total Transfers Completed</span>
+                        <span class="value">28</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="label">Units Transferred</span>
+                        <span class="value">1,240</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="label">Purchase Cost Avoided</span>
+                        <span class="value" style="color: var(--success);">₹18,500</span>
+                    </div>
+                    <div class="card stat-card">
+                        <span class="label">Net Savings</span>
+                        <span class="value" style="color: var(--primary);">₹9,300</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Transfer Savings Trajectory</h3>
+                    <canvas id="chart-reports" height="100"></canvas>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- AI CHATBOT WIDGET -->
+    <button id="ai-widget-btn" onclick="toggleChat()">
+        <i data-feather="message-square"></i>
+    </button>
+
+    <div id="ai-chat-window">
+        <div class="chat-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i data-feather="cpu" style="color: var(--primary); width:16px;"></i>
+                <span>StockBridge AI</span>
+            </div>
+            <i data-feather="x" style="cursor:pointer; width:16px;" onclick="toggleChat()"></i>
+        </div>
+        <div class="chat-messages" id="chat-body">
+            <div class="chat-msg ai">
+                Hi! I'm StockBridge AI. How can I assist you with your inventory today?
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Ask about stock, expiry..." onkeydown="if(event.key==='Enter') sendChat()">
+            <button class="btn btn-primary btn-sm" onclick="sendChat()"><i data-feather="send"></i></button>
+        </div>
+    </div>
+
+    <!-- MODAL: PRODUCT DETAILS -->
+    <div class="modal-overlay" id="modal-product">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Product Details - Product X</span>
+                <i data-feather="x" style="cursor:pointer;" onclick="closeModal('modal-product')"></i>
+            </div>
+            <div class="modal-body">
+                <div>Category: <strong>Electronics</strong></div>
+                <div class="grid-2">
+                    <div style="background:var(--bg-main); padding:10px; border-radius:6px;">Current Stock: <strong>100</strong></div>
+                    <div style="background:var(--bg-main); padding:10px; border-radius:6px;">Daily Demand: <strong>10/day</strong></div>
+                </div>
+                <h4 style="margin-top:10px;">Stock Distribution by Branch</h4>
+                <div style="font-size:13px; display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; justify-content:space-between;"><span>Branch A:</span><strong>100 units</strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span>Branch B:</span><strong>5 units</strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span>Branch C:</span><strong>42 units</strong></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-product')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: BATCH INSPECT -->
+    <div class="modal-overlay" id="modal-batch">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Batch Details #B102</span>
+                <i data-feather="x" style="cursor:pointer;" onclick="closeModal('modal-batch')"></i>
+            </div>
+            <div class="modal-body">
+                <div>Quantity: <strong>70 units</strong> | Days to expiry: <strong style="color:var(--danger)">3 days</strong></div>
+                <div>Expected Local Demand: <strong>30 units</strong> | Excess Risk Stock: <strong>40 units</strong></div>
+                <hr style="border:0; border-top:1px solid var(--border)">
+                <div style="background: var(--primary-light); padding:12px; border-radius:6px; font-size:12px;">
+                    <strong>Recommended Reroute Target:</strong> Branch B<br>
+                    Current Stock: 5 units | Branch Demand: 90 units
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-batch')">Cancel</button>
+                <button class="btn btn-primary" onclick="closeModal('modal-batch'); switchTab('transfers');">Create Transfer Recommendation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIRM TRANSFER -->
+    <div class="modal-overlay" id="modal-confirm-transfer">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Confirm Inventory Transfer</span>
+                <i data-feather="x" style="cursor:pointer;" onclick="closeModal('modal-confirm-transfer')"></i>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to execute this database transaction?</p>
+                <div style="font-size:13px; line-height:1.6; background:var(--bg-main); padding:12px; border-radius:6px;">
+                    From: <strong>Branch A</strong> → To: <strong>Branch B</strong><br>
+                    Product: <strong>Product X</strong> (60 units)<br>
+                    Batch: <strong>#B102</strong> | Estimated Saving: <strong>₹450</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-confirm-transfer')">Cancel</button>
+                <button class="btn btn-primary" onclick="executeTransfer()">Confirm & Execute</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Feather Icons initialization
+        feather.replace();
+
+        // TAB SWITCHING SYSTEM
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            if(el) el.classList.add('active');
+
+            // Update top bar text
+            const titleMap = {
+                'dashboard': 'Dashboard Overview',
+                'inventory': 'Inventory Directory',
+                'expiry': 'Expiry Risk Tracking',
+                'transfers': 'Stock Redistribution Engine',
+                'branches': 'Branch Locations',
+                'suppliers': 'Vendor Database',
+                'reports': 'System Reports & Analytics'
+            };
+            document.getElementById('top-title').innerText = titleMap[tabId];
+        }
+
+        // MODAL MANAGEMENT
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // EXPLAINABLE AI TOGGLE
+        function toggleExplanation() {
+            const box = document.getElementById('explanation-box');
+            box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // REJECT TRANSFER
+        function rejectTransfer(id) {
+            document.getElementById(id).remove();
+        }
+
+        // EXECUTE TRANSACTION
+        function executeTransfer() {
+            closeModal('modal-confirm-transfer');
+            const card = document.getElementById('transfer-card-1');
+            card.innerHTML = `
+                <div style="background: var(--success-light); color: var(--success); padding: 16px; border-radius: 6px; text-align: center; font-weight: 600;">
+                    ✓ Transfer Completed Successfully!
+                    <div style="font-size: 12px; font-weight: 400; margin-top: 4px; color: var(--text-main);">
+                        60 units moved from Branch A → Branch B. Database inventory records updated.
+                    </div>
+                </div>
+            `;
+        }
+
+        // CHATBOT WIDGET TOGGLE
+        function toggleChat() {
+            const win = document.getElementById('ai-chat-window');
+            win.style.display = win.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // MOCK AI BOT RESPONSE ENGINE
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            const txt = input.value.trim();
+            if(!txt) return;
+
+            const body = document.getElementById('chat-body');
+            
+            // Append User Message
+            body.innerHTML += `<div class="chat-msg user">${txt}</div>`;
+            input.value = '';
+
+            // Generate Smart Reply based on queries
+            let reply = "I am trained to query the StockBridge SQLite database. Try asking: 'Which products are expiring?' or 'Show low stock'.";
+            const lower = txt.toLowerCase();
+
+            if(lower.includes('expir')) {
+                reply = "There are currently <strong>86 units</strong> expiring within 7 days. The most critical is Batch #B102 (Product A) at Branch A.";
+            } else if(lower.includes('low stock') || lower.includes('shortage')) {
+                reply = "<strong>Branch B</strong> has critical low stock for Product Y (only 5 units remaining, demand is 30/day).";
+            } else if(lower.includes('saving') || lower.includes('transfer')) {
+                reply = "By approving the pending transfer from Branch A to Branch B, you will save approximately <strong>₹450</strong>.";
+            }
+
+            setTimeout(() => {
+                body.innerHTML += `<div class="chat-msg ai">${reply}</div>`;
+                body.scrollTop = body.scrollHeight;
+            }, 500);
+        }
+
+        // INITIALIZE CHART.JS VISUALS
+        window.onload = function() {
+            // Branch Stock Chart
+            new Chart(document.getElementById('chart-branch'), {
+                type: 'bar',
+                data: {
+                    labels: ['Branch A', 'Branch B', 'Branch C', 'Branch D'],
+                    datasets: [{
+                        label: 'Stock Count',
+                        data: [4200, 2100, 3800, 2380],
+                        backgroundColor: '#2563eb',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } } }
+            });
+
+            // Stock Health Chart
+            new Chart(document.getElementById('chart-health'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Healthy', 'Low Stock', 'Expiring'],
+                    datasets: [{
+                        data: [11800, 324, 86],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Reports Chart
+            new Chart(document.getElementById('chart-reports'), {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Cost Savings (₹)',
+                        data: [1200, 3400, 5800, 9300],
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: { responsive: true }
+            });
+        };
+    </script>
+</body>
+</html>
